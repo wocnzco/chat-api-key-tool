@@ -8,13 +8,22 @@ cp .env.example .env
 修改.env文件中的配置
 ```
 # 展示使用明细
-SHOW_DETAIL="false"
+REACT_APP_SHOW_DETAIL="true"
 
 # 展示余额
-SHOW_BALANCE="true"
+REACT_APP_SHOW_BALANCE="true"
+
+# MJ日志按钮
+REACT_APP_SHOW_MJ="true"
+
+# 标题名称
+REACT_APP_SHOW_NAME="AI365"
+
+# 发卡站
+REACT_APP_SHOW_KAFA=""
 
 # BaseURL 结尾不要带/
-BASE_URL="https://nekoapi.com"
+REACT_APP_BASE_URL="http://127.0.0.1:3000"
 ```
 
-展示使用明细功能需要使用的魔改版One API，项目地址：https://github.com/Calcium-Ion/one-api
+基于项目：https://github.com/ai365vip/chat-api
