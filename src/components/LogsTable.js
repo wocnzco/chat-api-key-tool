@@ -1,10 +1,9 @@
-import React, {useEffect, useState} from 'react';
-import {Button, Form, Header, Input, Label, Pagination, Segment, Select, Table} from 'semantic-ui-react';
-import {API, isAdmin, showError, showInfo, timestamp2string} from '../helpers';
-
+import React, {useState} from 'react';
+import {API, showError, timestamp2string} from '../helpers';
+import { Input, Button, Table, Tag, Layout,Space,Form,ImagePreview,Modal,Typography } from '@douyinfe/semi-ui'; 
 import {ITEMS_PER_PAGE} from '../constants';
 import {renderQuota} from '../helpers/render';
-
+import { IconSearch } from '@douyinfe/semi-icons';
 function renderTimestamp(timestamp) {
     return (
         <>
@@ -12,7 +11,10 @@ function renderTimestamp(timestamp) {
         </>
     );
 }
-
+const colors = ['amber', 'blue', 'cyan', 'green', 'grey', 'indigo',
+    'light-blue', 'lime', 'orange', 'pink',
+    'purple', 'red', 'teal', 'violet', 'yellow'
+]
 const MODE_OPTIONS = [
     {key: 'all', text: '全部用户', value: 'all'},
     {key: 'self', text: '当前用户', value: 'self'}
@@ -29,353 +31,614 @@ const LOG_OPTIONS = [
 function renderType(type) {
     switch (type) {
         case 1:
-            return <Label basic color='green'> 充值 </Label>;
+            return <Tag color='cyan' size='large'> 充值 </Tag>;
         case 2:
-            return <Label basic color='olive'> 消费 </Label>;
+            return <Tag color='lime' size='large'> 消费 </Tag>;
         case 3:
-            return <Label basic color='orange'> 管理 </Label>;
+            return <Tag color='orange' size='large'> 管理 </Tag>;
         case 4:
-            return <Label basic color='purple'> 系统 </Label>;
+            return <Tag color='purple' size='large'> 系统 </Tag>;
         default:
-            return <Label basic color='black'> 未知 </Label>;
+            return <Tag color='black' size='large'> 未知 </Tag>;
     }
 }
+function renderIsStream(bool) {
+    if (bool) {
+        return <Tag color='blue' size='large'>流</Tag>;
+    } else {
+        return <Tag color='purple' size='large'>非流</Tag>;
+    }	
+}
+		
+
+		
+function renderUseTime(type) {
+    const time = parseInt(type);
+    if (time < 101) {
+        return <Tag color='green' size='large'> {time} s </Tag>;
+    } else if (time < 300) {
+        return <Tag color='orange' size='large'> {time} s </Tag>;
+    } else {
+        return <Tag color='red' size='large'> {time} s </Tag>;
+    }	
+}
+
+function stringToColor(str) {
+    let sum = 0;
+    // 对字符串中的每个字符进行操作
+    for (let i = 0; i < str.length; i++) {
+        // 将字符的ASCII值加到sum中
+        sum += str.charCodeAt(i);
+    }
+    // 使用模运算得到个位数
+    let i = sum % colors.length;
+    return colors[i];
+}
+
+function renderTypeMj(type) {
+    switch (type) {
+      case 'IMAGINE':
+        return <Tag color="blue" size='large'>绘图</Tag>;
+      case 'UPSCALE':
+        return <Tag color="orange" size='large'>放大</Tag>;
+      case 'VARIATION':
+        return <Tag color="purple" size='large'>变换</Tag>;
+      case 'DESCRIBE':
+        return <Tag color="yellow" size='large'>图生文</Tag>;
+      case 'BLEAND':
+        return <Tag color="lime" size='large'>图混合</Tag>;
+      default:
+        return <Tag color="black" size='large'>未知</Tag>;
+    }
+  }
+  
+  
+  function renderCode(code) {
+    switch (code) {
+      case 1:
+        return <Tag color="green" size='large'>已提交</Tag>;
+      case 21:
+        return <Tag color="lime" size='large'>排队中</Tag>;
+      case 22:
+        return <Tag color="orange" size='large'>重复提交</Tag>;
+      default:
+        return <Tag color="black" size='large'>未知</Tag>;
+    }
+  }
+  
+  
+  function renderStatus(type) {
+    // Ensure all cases are string literals by adding quotes.
+    switch (type) {
+      case 'SUCCESS':
+        return <Tag color="green" size='large'>成功</Tag>;
+      case 'NOT_START':
+        return <Tag color="grey" size='large'>未启动</Tag>;
+      case 'SUBMITTED':
+        return <Tag color="yellow" size='large'>队列中</Tag>;
+      case 'IN_PROGRESS':
+        return <Tag color="blue" size='large'>执行中</Tag>;
+      case 'FAILURE':
+        return <Tag color="red" size='large'>失败</Tag>;
+      default:
+        return <Tag color="black" size='large'>未知</Tag>;
+    }
+  }
+  
 
 const LogsTable = () => {
-    const [key, setKey] = useState('')
+    const [modalImageUrl, setModalImageUrl] = useState('');
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isModalOpenurl, setIsModalOpenurl] = useState(false);
+    const [modalContent, setModalContent] = useState('');
+    const columns = [
+        {
+            title: '时间',
+            dataIndex: 'created_at',
+            width: '15%',  
+            render: (text, record, index) => {
+                return (
+                    <div>
+                       {renderTimestamp(text)}
+                    </div>
+                );
+            },
+        },
+        {
+            title: '类型',
+            dataIndex: 'type',
+            render: (text, record, index) => {
+                return (
+                    <div>
+                        {renderType(text)}
+                    </div>
+                );
+            },
+        },
+        {
+            title: '模型',
+            dataIndex: 'model_name',
+            render: (text, record, index) => {
+                return (
+                    record.type === 0 || record.type === 2 ?
+                        <div>
+                            <Tag color={stringToColor(text)} size='large' > {text} </Tag>
+                        </div>
+                        :
+                        <></>
+                );
+            },
+        },
+        {
+            title: '用时',
+            dataIndex: 'use_time',
+            render: (text, record, index) => {
+                return (
+                    <div>
+                        <Space>
+                            {renderUseTime(text)}
+                            {renderIsStream(record.is_stream)}
+                        </Space>
+                    </div>
+                );
+            },
+        },
+        {
+            title: '提示',
+            dataIndex: 'prompt_tokens',
+            render: (text, record, index) => {
+                return (
+                    record.type === 0 || record.type === 2 ?
+                        <div>
+                            {<span> {text} </span>}
+                        </div>
+                        :
+                        <></>
+                );
+            },
+        },
+        {
+            title: '补全',
+            dataIndex: 'completion_tokens',
+            render: (text, record, index) => {
+                return (
+                    parseInt(text) > 0 && (record.type === 0 || record.type === 2) ?
+                        <div>
+                            {<span> {text} </span>}
+                        </div>
+                        :
+                        <></>
+                );
+            },
+        },
+        {
+            title: '消费',
+            dataIndex: 'quota',
+            render: (text, record, index) => {
+                return (
+                    record.type === 0 || record.type === 2 ?
+                        <div>
+                            {
+                                renderQuota(text, 6)
+                            }
+                        </div>
+                        :
+                        <></>
+                );
+            }
+        }
+    ];
+
+    const columnsmj = [
+        {
+          title: '提交时间',
+          dataIndex: 'submit_time',
+          width: '15%', 
+          render: (text, record, index) => {
+            return (
+              <div>
+                {renderTimestamp(text / 1000)} 
+              </div>
+            );
+          },
+        },
+        {
+          title: '类型',
+          dataIndex: 'action',
+          render: (text, record, index) => {
+              return (
+                  <div>
+                      {renderTypeMj(text)}
+                  </div>
+              );
+          },
+        },
+        {
+            title: '任务ID',
+            dataIndex: 'mj_id',
+            width: '15%', 
+            render: (text, record, index) => {
+                return (
+                  <div>
+                    {text}
+                </div>
+                );
+            },
+        },
+        {
+          title: '提交结果',
+          dataIndex: 'code',
+          render: (text, record, index) => {
+              return (
+                <div>
+                 {renderCode(text)}
+               </div>
+              );
+          },
+        },
+        {
+            title: '任务状态',
+            dataIndex: 'status',
+            render: (text, record, index) => {
+                return (
+                  <div>
+                    {renderStatus(text)}
+                  </div>
+                );
+            },
+        },
+        {
+            title: '进度',
+            dataIndex: 'progress',
+            render: (text, record, index) => {
+                return (
+                  <div>
+                     {<span> {text} </span>}
+                  </div>
+                );
+            },
+        },
+        {
+          title: '结果图片',
+          dataIndex: 'image_url',
+          render: (text, record, index) => {
+            if (!text) {
+              return '无';
+            }
+            return (
+              <Button
+              size='small'
+                onClick={() => {
+                  setModalImageUrl(text);  // 更新图片URL状态
+                  setIsModalOpenurl(true);    // 打开模态框
+                }}
+              >
+                查看
+              </Button>
+            );
+          }
+        },
+        {
+            title: 'Prompt',
+            dataIndex: 'prompt',
+            render: (text, record, index) => {
+              // 如果text未定义，返回替代文本，例如空字符串''或其他
+              if (!text) {
+                  return '无';
+              }
+      
+              return (
+                  <Typography.Text
+                      ellipsis={{ showTooltip: true }}
+                      style={{ width: 100 }}
+                      onClick={() => {
+                          setModalContent(text);
+                          setIsModalOpen(true);
+                      }}
+                  >
+                      {text}
+                  </Typography.Text>
+              );
+          }
+        },
+        {
+            title: 'PromptEn',
+            dataIndex: 'prompt_en',
+            render: (text, record, index) => {
+              // 如果text未定义，返回替代文本，例如空字符串''或其他
+              if (!text) {
+                  return '无';
+              }
+      
+              return (
+                  <Typography.Text
+                      ellipsis={{ showTooltip: true }}
+                      style={{ width: 100 }}
+                      onClick={() => {
+                          setModalContent(text);
+                          setIsModalOpen(true);
+                      }}
+                  >
+                      {text}
+                  </Typography.Text>
+              );
+          }
+        },
+        {
+            title: '失败原因',
+            dataIndex: 'fail_reason',
+            render: (text, record, index) => {
+              // 如果text未定义，返回替代文本，例如空字符串''或其他
+              if (!text) {
+                  return '无';
+              }
+      
+              return (
+                  <Typography.Text
+                      ellipsis={{ showTooltip: true }}
+                      style={{ width: 100 }}
+                      onClick={() => {
+                          setModalContent(text);
+                          setIsModalOpen(true);
+                      }}
+                  >
+                      {text}
+                  </Typography.Text>
+              );
+          }
+        }
+
+    ];
+
     const [balance, setBalance] = useState(0)
     const [usage, setUsage] = useState(0)
-    const [logs, setLogs] = useState([]);
+
     const [loading, setLoading] = useState(false);
-    const [activePage, setActivePage] = useState(1);
-    const [searchKeyword, setSearchKeyword] = useState('');
+    const [keyValue, setKeyValue] = useState(''); 
     const [searching, setSearching] = useState(false);
-    const [logType, setLogType] = useState(0);
-    const isAdminUser = isAdmin();
-    let now = new Date();
-    const [inputs, setInputs] = useState({
-        username: '',
-        token_name: '',
-        model_name: '',
-        start_timestamp: timestamp2string(0),
-        end_timestamp: timestamp2string(now.getTime() / 1000 + 3600)
+    const [pageSize, setPageSize] = useState(ITEMS_PER_PAGE);
+
+    const [currentViewType, setCurrentViewType] = useState('normal'); // 'normal' 或 'mj'
+
+    const toggleViewType = (type) => {
+        setCurrentViewType(type);
+    };
+    
+    const [data, setData] = useState({
+        key: '',
+        balance: 0,
+        usage: 0,
+        logs: [],
+        loading: false,
+        activePage: 1,
+        searching: false,
+        stat: {
+            quota: 0,
+            token: 0
+        }
     });
-    const {username, token_name, model_name, start_timestamp, end_timestamp} = inputs;
 
-    const [stat, setStat] = useState({
-        quota: 0,
-        token: 0
-    });
 
-    const handleInputChange = (e, {name, value}) => {
-        setInputs((inputs) => ({...inputs, [name]: value}));
-    };
-
-    const getLogSelfStat = async () => {
-        // let localStartTimestamp = Date.parse(start_timestamp) / 1000;
-        // let localEndTimestamp = Date.parse(end_timestamp) / 1000;
-        // let res = await API.get(`/api/log/self/stat?type=${logType}&token_name=${token_name}&model_name=${model_name}&start_timestamp=${localStartTimestamp}&end_timestamp=${localEndTimestamp}`);
-        // const { success, message, data } = res.data;
-        // if (success) {
-        //   setStat(data);
-        // } else {
-        //   showError(message);
-        // }
-    };
-
-    const getLogStat = async () => {
-        // let localStartTimestamp = Date.parse(start_timestamp) / 1000;
-        // let localEndTimestamp = Date.parse(end_timestamp) / 1000;
-        // let res = await API.get(`/api/log/stat?type=${logType}&username=${username}&token_name=${token_name}&model_name=${model_name}&start_timestamp=${localStartTimestamp}&end_timestamp=${localEndTimestamp}`);
-        // const { success, message, data } = res.data;
-        // if (success) {
-        //   setStat(data);
-        // } else {
-        //   showError(message);
-        // }
-    };
-
-    const loadLogs = async (startIdx) => {
-        // let url = '';
-        // let localStartTimestamp = Date.parse(start_timestamp) / 1000;
-        // let localEndTimestamp = Date.parse(end_timestamp) / 1000;
-        // if (isAdminUser) {
-        //   url = `/api/log/?p=${startIdx}&type=${logType}&username=${username}&token_name=${token_name}&model_name=${model_name}&start_timestamp=${localStartTimestamp}&end_timestamp=${localEndTimestamp}`;
-        // } else {
-        //   url = `/api/log/self/?p=${startIdx}&type=${logType}&token_name=${token_name}&model_name=${model_name}&start_timestamp=${localStartTimestamp}&end_timestamp=${localEndTimestamp}`;
-        // }
-        // const res = await API.get(url);
-        // const { success, message, data } = res.data;
-        // if (success) {
-        //   if (startIdx === 0) {
-        //     setLogs(data);
-        //   } else {
-        //     let newLogs = [...logs];
-        //     newLogs.splice(startIdx * ITEMS_PER_PAGE, data.length, ...data);
-        //     setLogs(newLogs);
-        //   }
-        // } else {
-        //   showError(message);
-        // }
-        // setLoading(false);
-    };
-
-    const onPaginationChange = (e, {activePage}) => {
-        (async () => {
-            if (activePage === Math.ceil(logs.length / ITEMS_PER_PAGE) + 1) {
-                // In this case we have to load more data and then append them.
-                await loadLogs(activePage - 1);
-            }
-            setActivePage(activePage);
-        })();
-    };
-
-    const refresh = async () => {
-        setLoading(true);
-        setActivePage(1)
-        await loadLogs(0);
-        // if (isAdminUser) {
-        //   getLogStat().then();
-        // } else {
-        //   getLogSelfStat().then();
-        // }
-    };
-
-    // useEffect(() => {
-    //   refresh().then();
-    // }, [logType]);
-
-    const searchLogs = async () => {
+    const searchLogs = async (key) => {
         if (key === '') {
             alert('请输入搜索关键字');
             return;
         }
-        console.log(key);
-        setSearching(true);
-        const res = await API.get( process.env.REACT_APP_BASE_URL +  `/api/log/token?key=${key}`);
-        const {success, message, data} = res.data;
-        if (success) {
-            setLogs(data);
-            var quota = 0
-            for (let i = 0; i < data.length; i++) {
-                quota += data[i].quota
+        setData(prevData => ({...prevData, searching: true}));
+        
+        try {
+            const res = await API.get(`${process.env.REACT_APP_BASE_URL}/api/log/token?key=${key}`);
+            if (res.data && typeof res.data === 'object' && 'success' in res.data) {
+                const {success, message, data: logsData} = res.data;
+                if (success) {
+                    let totalQuota = logsData ? logsData.reduce((acc, curr) => acc + curr.quota, 0) : 0;
+                    setData(prevData => ({
+                        ...prevData,
+                        logs: logsData || [],
+                        stat: {...prevData.stat, quota: totalQuota},
+                        activePage: 1
+                    }));
+                } else {
+                    alert("查询失败，请输入正确的key");
+                }
+            } else {
+                // 处理API响应格式不正确的情况
+                showError("API响应格式不正确。");
             }
-            setStat({
-                quota: quota,
-            })
-            setActivePage(1);
-        } else {
-            alert("查询失败，请输入正确的key");
+        } catch (error) {
+            showError(error.message);
+        } finally {
+            setData(prevData => ({...prevData, searching: false}));
         }
-        setSearching(false);
     };
 
-    const getBalance = async () => {
+    const searchMjs = async (key) => {
+        if (key === '') {
+            alert('请输入搜索关键字');
+            return;
+        }
+        setData(prevData => ({...prevData, searching: true}));
+        
+        try {
+            const res = await API.get(`${process.env.REACT_APP_BASE_URL}/api/log/tokenmj?key=${key}`);
+            if (res.data && typeof res.data === 'object' && 'success' in res.data) {
+                const {success, message, data: logsData} = res.data;
+                if (success) {
+                    let totalQuota = logsData ? logsData.reduce((acc, curr) => acc + curr.quota, 0) : 0;
+                    setData(prevData => ({
+                        ...prevData,
+                        logs: logsData || [],
+                        stat: {...prevData.stat, quota: totalQuota},
+                        activePage: 1
+                    }));
+                } else {
+                    alert("查询失败，请输入正确的key");
+                }
+            } else {
+                // 处理API响应格式不正确的情况
+                showError("API响应格式不正确。");
+            }
+        } catch (error) {
+            showError(error.message);
+        } finally {
+            setData(prevData => ({...prevData, searching: false}));
+        }
+    };
+    
+
+    const getBalance = async (key) => {
         if (key === '') {
             alert('请输入你的key');
+            return;
         }
+        setData(prevData => ({...prevData, loading: true}));
+    
         try {
-            const subscription = await API.get( process.env.REACT_APP_BASE_URL +  `/v1/dashboard/billing/subscription`, {headers: {Authorization: `Bearer ${key}`}});
-            const subscriptionData = subscription.data;
-            setBalance(subscriptionData.hard_limit_usd);
+            const subscription = await API.get(`${process.env.REACT_APP_BASE_URL}/v1/dashboard/billing/subscription`, {headers: {Authorization: `Bearer ${key}`}});
+            // 安全检查subscription response
+            if (subscription.data && typeof subscription.data === 'object') {
+                const subscriptionData = subscription.data;
+    
+                const usageRes = await API.get(`${process.env.REACT_APP_BASE_URL}/v1/dashboard/billing/usage`, {headers: {Authorization: `Bearer ${key}`}});
+                // 安全检查usage response
+                if (usageRes.data && typeof usageRes.data === 'object') {
+                    const usageData = usageRes.data;
+    
+                    // 假设我们要设置的是balance和usage而不是直接操作data状态
+                    setBalance(subscriptionData.hard_limit_usd);
+                    setUsage(usageData.total_usage / 100);
+                } else {
+                    // 处理用量信息的API响应格式不正确的情况
+                    showError("用量信息API响应格式不正确。");
+                }
+            } else {
+                // 处理订阅信息的API响应格式不正确的情况
+                showError("订阅信息API响应格式不正确。");
+            }
         } catch (e) {
-            // alert("查询失败，请输入正确的key");
+            showError("查询失败，请输入正确的key");
+        } finally {
+            setData(prevData => ({...prevData, loading: false}));
         }
-        //设置开始日期为100天前，结束时间为现在 yyyy-mm-dd
-        let now = new Date();
-        let start = new Date(now.getTime() - 100 * 24 * 3600 * 1000);
-        let start_date = start.getFullYear() + '-' + (start.getMonth() + 1) + '-' + start.getDate();
-        let end_date = now.getFullYear() + '-' + (now.getMonth() + 1) + '-' + now.getDate();
-        const res = await API.get( process.env.REACT_APP_BASE_URL +  `/v1/dashboard/billing/usage?start_date=${start_date}&end_date=${end_date}`, {headers: {Authorization: `Bearer ${key}`}});
-        const data = res.data;
-        setUsage(data.total_usage/100)
-    }
-
-    const handleKeywordChange = async (e, {value}) => {
-        setSearchKeyword(value.trim());
     };
+    
 
-    const sortLog = (key) => {
-        if (logs.length === 0) return;
-        setLoading(true);
-        let sortedLogs = [...logs];
-        if (typeof sortedLogs[0][key] === 'string') {
-            sortedLogs.sort((a, b) => {
-                return ('' + a[key]).localeCompare(b[key]);
-            });
-        } else {
-            sortedLogs.sort((a, b) => {
-                if (a[key] === b[key]) return 0;
-                if (a[key] > b[key]) return -1;
-                if (a[key] < b[key]) return 1;
-            });
-        }
-        if (sortedLogs[0].id === logs[0].id) {
-            sortedLogs.reverse();
-        }
-        setLogs(sortedLogs);
-        setLoading(false);
+    // 更新键值的函数
+    const handleInputChange = (value) => {
+        setKeyValue(value);
     };
+    
+    // 触发搜索的函数
+    const triggerSearch = () => {
+        
+        // 根据环境变量判断是否显示余额信息
+        if (process.env.REACT_APP_SHOW_BALANCE === "true") {
+            getBalance(keyValue); // 使用 keyValue 调用 getBalance
+        }
+        
+        // 根据环境变量判断是否显示详细日志信息
+        if (process.env.REACT_APP_SHOW_DETAIL === 'true') {
+            searchLogs(keyValue); // 使用 keyValue 调用 searchLogs
+        }
+        
+        // 无条件切换到普通日志视图，不管环境变量如何设置
+        toggleViewType('normal');
+    };
+    
 
     return (
         <>
-            <div style={{
-                width: '100%',
-            }}>
-                <Input placeholder='请输入key' value={key} name='token' action={
-                    <Button icon='search' onClick={
-                        () => {
-                            console.log(process.env.REACT_APP_SHOW_BALANCE);
-                            console.log(typeof process.env.REACT_APP_SHOW_BALANCE);
-                            console.log(process.env.REACT_APP_SHOW_BALANCE === 'true');
-                            if (process.env.REACT_APP_SHOW_BALANCE == "true") {
-                                getBalance();
-                            }
-                            if (process.env.REACT_APP_SHOW_DETAIL == 'true') {
-                                searchLogs();
-                            }
-                        }
-                    } loading={searching}/>
-                } onChange={
-                    (e, {value}) => setKey(value)
-                }
-                       style={{
-                           width: '50%',
-                       }}
+        <h1 style={{ textAlign: 'center', marginTop: 20 }}>{process.env.REACT_APP_SHOW_NAME}</h1>
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: 20 }}>
+            {/* 内层容器, 包含输入框和按钮 */}
+            <div style={{ position: 'relative' }}> 
+                <Input 
+                     placeholder="请输入key"
+                     value={keyValue}
+                     onChange={(value) => handleInputChange(value)}
+                     style={{ minWidth: 450 }} 
                 />
+                {/* 按钮定位在输入框右侧 */}
+                <div style={{ position: 'absolute', right: '-130px', top: '0' }}>
+                    <Button
+                        icon={<IconSearch />}
+                        onClick={triggerSearch}
+                        loading={searching}
+                    >
+                        搜索
+                    </Button>
+                    {process.env.REACT_APP_SHOW_MJ === "true" && (
+                        <Button
+                            onClick={() => {
+                                searchMjs(keyValue); // 获取Midjourney数据
+                                toggleViewType('mj'); // 切换到Midjourney视图
+                            }}
+                            loading={searching}
+                            style={{ marginLeft: 8 }} // 根据需要调整间距
+                        >
+                            MJ
+                        </Button>
+                    )}
+                    {process.env.REACT_APP_SHOW_KAFA !== "" && (
+                        <Button
+                            onClick={() => window.open(process.env.REACT_APP_SHOW_KAFA, '_blank')}
+                            style={{ marginLeft: 8 }} // 根据需要调整间距
+                        >
+                            获取密钥
+                        </Button>
+                    )}
+                </div>
             </div>
-            <Segment>
-                <Header as='h3'>
-                    {process.env.REACT_APP_SHOW_BALANCE == "true" && <span>余额：{balance}$</span>}
-                    <br/>
-                    {process.env.REACT_APP_SHOW_DETAIL == "true" && <span>本月已用：{usage}$</span>}
-                </Header>
-                {process.env.REACT_APP_SHOW_DETAIL == "true" &&
-                    <Table basic compact size='small'>
-                        <Table.Header>
-                            <Table.Row>
-                                <Table.HeaderCell
-                                    style={{cursor: 'pointer'}}
-                                    onClick={() => {
-                                        sortLog('created_time');
-                                    }}
-                                    width={2}
-                                >
-                                    时间
-                                </Table.HeaderCell>
-                                <Table.HeaderCell
-                                    style={{cursor: 'pointer'}}
-                                    onClick={() => {
-                                        sortLog('type');
-                                    }}
-                                    width={1}
-                                >
-                                    类型
-                                </Table.HeaderCell>
-                                <Table.HeaderCell
-                                    style={{cursor: 'pointer'}}
-                                    onClick={() => {
-                                        sortLog('model_name');
-                                    }}
-                                    width={2}
-                                >
-                                    模型
-                                </Table.HeaderCell>
-                                <Table.HeaderCell
-                                    style={{cursor: 'pointer'}}
-                                    onClick={() => {
-                                        sortLog('prompt_tokens');
-                                    }}
-                                    width={1}
-                                >
-                                    提示
-                                </Table.HeaderCell>
-                                <Table.HeaderCell
-                                    style={{cursor: 'pointer'}}
-                                    onClick={() => {
-                                        sortLog('completion_tokens');
-                                    }}
-                                    width={1}
-                                >
-                                    补全
-                                </Table.HeaderCell>
-                                <Table.HeaderCell
-                                    style={{cursor: 'pointer'}}
-                                    onClick={() => {
-                                        sortLog('quota');
-                                    }}
-                                    width={2}
-                                >
-                                    消耗额度
-                                </Table.HeaderCell>
-                                <Table.HeaderCell
-                                    style={{cursor: 'pointer'}}
-                                    onClick={() => {
-                                        sortLog('content');
-                                    }}
-                                    width={isAdminUser ? 4 : 5}
-                                >
-                                    详情
-                                </Table.HeaderCell>
-                            </Table.Row>
-                        </Table.Header>
-
-                        <Table.Body>
-                            {logs
-                                .slice(
-                                    (activePage - 1) * ITEMS_PER_PAGE,
-                                    activePage * ITEMS_PER_PAGE
-                                )
-                                .map((log, idx) => {
-                                    if (log.deleted) return <></>;
-                                    return (
-                                        <Table.Row key={log.created_at}>
-                                            <Table.Cell>{renderTimestamp(log.created_at)}</Table.Cell>
-                                            <Table.Cell>{renderType(log.type)}</Table.Cell>
-                                            <Table.Cell>{log.model_name ?
-                                                <Label basic>{log.model_name}</Label> : ''}</Table.Cell>
-                                            <Table.Cell>{log.prompt_tokens ? log.prompt_tokens : ''}</Table.Cell>
-                                            <Table.Cell>{log.completion_tokens ? log.completion_tokens : ''}</Table.Cell>
-                                            <Table.Cell>{log.quota ? renderQuota(log.quota, 6) : ''}</Table.Cell>
-                                            <Table.Cell>{log.content}</Table.Cell>
-                                        </Table.Row>
-                                    );
-                                })}
-                        </Table.Body>
-
-                        <Table.Footer>
-                            <Table.Row>
-                                <Table.HeaderCell colSpan={'9'}>
-                                    {/*<Select*/}
-                                    {/*  placeholder='选择明细分类'*/}
-                                    {/*  options={LOG_OPTIONS}*/}
-                                    {/*  style={{ marginRight: '8px' }}*/}
-                                    {/*  name='logType'*/}
-                                    {/*  value={logType}*/}
-                                    {/*  onChange={(e, { name, value }) => {*/}
-                                    {/*    setLogType(value);*/}
-                                    {/*  }}*/}
-                                    {/*/>*/}
-                                    {/*<Button size='small' onClick={refresh} loading={loading}>刷新</Button>*/}
-                                    <Pagination
-                                        floated='right'
-                                        activePage={activePage}
-                                        onPageChange={onPaginationChange}
-                                        size='small'
-                                        siblingRange={1}
-                                        totalPages={
-                                            Math.ceil(logs.length / ITEMS_PER_PAGE) +
-                                            (logs.length % ITEMS_PER_PAGE === 0 ? 1 : 0)
-                                        }
-                                    />
-                                </Table.HeaderCell>
-                            </Table.Row>
-                        </Table.Footer>
-                    </Table>
-                }
-            </Segment>
+        </div>
+    
+            <Form style={{ marginTop: 20, display: 'flex', justifyContent: 'center' }}>
+                {process.env.REACT_APP_SHOW_BALANCE === "true" && (
+                    <Space>
+                        <Tag color="green" style={{ fontSize: '16px' }}>
+                            余额：${balance.toFixed(2)}
+                        </Tag>
+                        <Tag color="blue" style={{ fontSize: '16px' }}>
+                            已用：${usage.toFixed(2)}
+                        </Tag>
+                    </Space>
+                )}
+            </Form>
+    
+            {process.env.REACT_APP_SHOW_DETAIL === "true" &&
+                <Table
+                columns={currentViewType === 'normal' ? columns : columnsmj} 
+                dataSource={data.logs}
+                loading={loading}
+                scroll={{ y: 800 }}
+                pagination={{
+                    pageSize: pageSize,
+                    total: data.logs.length,
+                    onPageSizeChange: (newPageSize) => setPageSize(newPageSize),
+                    showSizeChanger: true
+                }}
+                style={{ marginTop: 20 }}
+            />
+            
+            
+            }
+            <Modal
+                    visible={isModalOpen}
+                    onOk={() => setIsModalOpen(false)}
+                    onCancel={() => setIsModalOpen(false)}
+                    closable={null}
+                    bodyStyle={{ height: '400px', overflow: 'auto' }} // 设置模态框内容区域样式
+                    width={800} // 设置模态框宽度
+                >
+                    <p style={{ whiteSpace: 'pre-line' }}>{modalContent}</p>
+                </Modal>
+                <ImagePreview
+                    src={modalImageUrl}
+                    visible={isModalOpenurl}
+                    onVisibleChange={(visible) => setIsModalOpenurl(visible)}
+                />
         </>
     );
+    
 };
 
 export default LogsTable;
