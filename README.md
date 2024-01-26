@@ -1,4 +1,4 @@
-![img.png](img.png)
+![image](https://github.com/ai365vip/chat-api/assets/154959065/90f29220-f546-4da4-a185-b2493452a61b)
 
 # 使用方法
 复制.env.example文件为.env
